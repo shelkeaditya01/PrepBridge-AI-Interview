@@ -1,56 +1,112 @@
-import React, { useEffect, useState } from 'react'
-import Webcam from 'react-webcam'
-import Image from 'next/image'
-import useSpeechToText from 'react-hook-speech-to-text'
-import { Button } from '@/components/ui/button'
-import { Mic } from 'lucide-react'
-import { toast } from 'sonner'
-import { ChatSession } from '@google/generative-ai'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import React, { useEffect, useState } from 'react';
+import Webcam from 'react-webcam';
+import { Button } from '@/components/ui/button';
+import { Mic } from 'lucide-react';
+import { toast } from 'sonner';
+import { GoogleGenAI } from '@google/genai';
+import useSpeechToText from 'react-hook-speech-to-text';
 
-
-function RecordAnswerSection({mockInterviewQuestion,activeQuestionIndex}) {
-  const [userAnswer, setUserAnswer] = useState('')
-
-  
+function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
+  const [userAnswer, setUserAnswer] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [rating, setRating] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const {
     error,
     interimResult,
-    isRecording,
+    isRecording: speechIsRecording,
     results,
     startSpeechToText,
     stopSpeechToText,
   } = useSpeechToText({
     continuous: true,
     useLegacyResults: false,
-  })
+  });
 
   useEffect(() => {
+    // Update user answer dynamically with speech recognition results
     results.forEach((result) => {
-      setUserAnswer((prevAns) => prevAns + result.transcript)
-    })
-  }, [results])
+      setUserAnswer((prevAns) => prevAns + result.transcript);
+    });
+  }, [results]);
 
-  const saveUserAnswer=async()=>{
-    if(isRecording){
+  const saveUserAnswer = async () => {
+    if (speechIsRecording) {
       stopSpeechToText();
-      if(userAnswer.length<10){
-        toast('Error while saving your answer, please record again!')
+      if (userAnswer.length < 10) {
+        toast('Error while saving your answer, please record again!');
         return;
       }
 
-      const feedbackPrompt="Question: "+mockInterviewQuestion[activeQuestionIndex]?.question+", User Answer: "+userAnswer+", deepends on question & user answer for given interview question please give us rating for answer & feedback as area of improvement if any in just 4 to 5 lines to improve it in JSON format with rating field & feedback field";
-      console.log(feedbackPrompt);
-      const result=await chatSession.sendMessage(feedbackPrompt);
+      // Construct the prompt for the generative AI
+      const feedbackPrompt = `
+        Question: ${mockInterviewQuestion[activeQuestionIndex]?.question}, 
+        User Answer: ${userAnswer},
+        Based on the question and the user answer, please provide a rating (out of 5) and feedback on areas for improvement in 4-5 lines.
+        Respond in JSON format with "rating" and "feedback" fields.
+      `;
 
-      const mockJsonResp=(result.response.text()).replace('```json','').replace('```','');
-      console.log(mockJsonResp);
+      try {
+        const ai = new GoogleGenAI({
+          apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+        });
+
+        const tools = [{ googleSearch: {} }];
+        const config = {
+          thinkingConfig: {
+            thinkingBudget: -1,
+          },
+          tools,
+        };
+
+        const model = 'gemini-2.5-flash';
+        const contents = [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: feedbackPrompt,
+              },
+            ],
+          },
+        ];
+
+        // Make the request to Gemini to generate feedback
+        const response = await ai.models.generateContentStream({
+          model,
+          config,
+          contents,
+        });
+
+        let fullText = '';
+        for await (const chunk of response) {
+          if (chunk?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            fullText += chunk.candidates[0].content.parts[0].text;
+          }
+        }
+
+        // Clean and parse the response text
+        const cleanedText = fullText.replace(/^```json\s*/, '').replace(/```$/, '');
+        const parsedResponse = JSON.parse(cleanedText);
+
+        // Set feedback and rating
+        setFeedback(parsedResponse.feedback);
+        setRating(parsedResponse.rating);
+
+        // Log feedback and rating to console
+        console.log('Answer Rating:', parsedResponse.rating);
+        console.log('Answer Feedback:', parsedResponse.feedback);
+
+        toast.success('Answer saved successfully!');
+      } catch (error) {
+        console.error('Error generating feedback:', error);
+        toast.error('Failed to get feedback. Please try again.');
+      }
+    } else {
+      startSpeechToText();
     }
-    else{
-        startSpeechToText();
-    }
-  }
+  };
 
   return (
     <div className="flex items-center justify-center flex-col mt-20">
@@ -82,7 +138,7 @@ function RecordAnswerSection({mockInterviewQuestion,activeQuestionIndex}) {
         className="mt-5 mb-2 cursor-pointer"
         onClick={saveUserAnswer}
       >
-        {isRecording ? (
+        {speechIsRecording ? (
           <span className="flex items-center gap-2 text-red-600">
             <Mic /> Stop Recording...
           </span>
@@ -95,14 +151,24 @@ function RecordAnswerSection({mockInterviewQuestion,activeQuestionIndex}) {
       <Button
         className="cursor-pointer"
         onClick={() => {
-          console.log(userAnswer)
+          console.log(userAnswer);
         }}
       >
         Show User Answer
       </Button>
 
+      {/* Display Feedback & Rating */}
+      {feedback && rating !== null && (
+        <div className="mt-6 text-center">
+          <h3 className="font-semibold text-xl">Feedback</h3>
+          <p className="text-lg">{feedback}</p>
+          <div className="mt-2">
+            <span className="text-lg font-bold">Rating: {rating}/5</span>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
-export default RecordAnswerSection
+export default RecordAnswerSection;
