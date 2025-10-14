@@ -5,18 +5,26 @@ import { Mic } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleGenAI } from '@google/genai';
 import useSpeechToText from 'react-hook-speech-to-text';
+import { useUser } from '@clerk/nextjs';
+import { db } from '@/utils/db';
+import { MockInterview, UserAnswer } from '@/utils/schema';
+import moment from 'moment';
+import { useRouter } from 'next/router';
 
-function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
+function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, interviewData }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const { user }=useUser();
+  const[loading,setLoading]=useState();
 
   const {
     error,
     interimResult,
     isRecording: speechIsRecording,
     results,
+    setResults,
     startSpeechToText,
     stopSpeechToText,
   } = useSpeechToText({
@@ -31,15 +39,26 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
     });
   }, [results]);
 
-  const saveUserAnswer = async () => {
+  useEffect(()=>{
+    if(!isRecording && userAnswer.length>10){
+      updateUserAnswer();
+    }
+  },[userAnswer])
+
+  const startStopRecording = async () => {
     if (speechIsRecording) {
       stopSpeechToText();
-      if (userAnswer.length < 10) {
-        toast('Error while saving your answer, please record again!');
-        return;
-      }
 
-      // Construct the prompt for the generative AI
+      }
+    else {
+      startSpeechToText();
+    }
+  };
+
+  const updateUserAnswer= async ()=>{
+
+    console.log(userAnswer);
+    // Construct the prompt for the generative AI
       const feedbackPrompt = `
         Question: ${mockInterviewQuestion[activeQuestionIndex]?.question}, 
         User Answer: ${userAnswer},
@@ -95,18 +114,49 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
         setRating(parsedResponse.rating);
 
         // Log feedback and rating to console
-        console.log('Answer Rating:', parsedResponse.rating);
-        console.log('Answer Feedback:', parsedResponse.feedback);
+        console.log(parsedResponse);
+        // console.log('Answer Rating:', parsedResponse.rating);
+        // console.log('Answer Feedback:', parsedResponse.feedback);
 
-        toast.success('Answer saved successfully!');
-      } catch (error) {
+//         console.log("Interview data:", interviewData);
+// console.log("Mock ID:", interviewData?.mockId);
+
+
+//         console.log({
+//   mockIdRef: interviewData?.mockId,
+//   question: mockInterviewQuestion[activeQuestionIndex]?.question,
+//   correctAns: mockInterviewQuestion[activeQuestionIndex]?.answer,
+//   userAns: userAnswer,
+//   feedback: parsedResponse?.feedback,
+//   rating: parsedResponse?.rating,
+//   userEmail: user?.primaryEmailAddress?.emailAddress,
+//   createdAt: moment().format('DD-MM-YYYY'),
+// });
+
+
+        const resp = await db.insert(UserAnswer).values({
+              mockIdRef: interviewData?.mockId,
+              question: mockInterviewQuestion[activeQuestionIndex]?.question,
+              correctAns: mockInterviewQuestion[activeQuestionIndex]?.answer,
+              userAns: userAnswer,
+              feedback: parsedResponse?.feedback,
+              rating: parsedResponse?.rating,
+              userEmail: user?.primaryEmailAddress?.emailAddress,
+              createdAt: moment().format('DD-MM-YYYY'), // fixed format
+        })
+
+        if(resp){
+          toast.success('Answer saved successfully!');
+          setResults([]);
+        }
+        setResults([]);
+        
+  } 
+  catch (error) {
         console.error('Error generating feedback:', error);
         toast.error('Failed to get feedback. Please try again.');
       }
-    } else {
-      startSpeechToText();
-    }
-  };
+  }
 
   return (
     <div className="flex items-center justify-center flex-col mt-20">
@@ -136,7 +186,7 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
       <Button
         variant="outline"
         className="mt-5 mb-2 cursor-pointer"
-        onClick={saveUserAnswer}
+        onClick={startStopRecording}
       >
         {speechIsRecording ? (
           <span className="flex items-center gap-2 text-red-600">
@@ -147,26 +197,6 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex }) {
         )}
       </Button>
 
-      {/* Show Answer Button */}
-      <Button
-        className="cursor-pointer"
-        onClick={() => {
-          console.log(userAnswer);
-        }}
-      >
-        Show User Answer
-      </Button>
-
-      {/* Display Feedback & Rating */}
-      {feedback && rating !== null && (
-        <div className="mt-6 text-center">
-          <h3 className="font-semibold text-xl">Feedback</h3>
-          <p className="text-lg">{feedback}</p>
-          <div className="mt-2">
-            <span className="text-lg font-bold">Rating: {rating}/5</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
