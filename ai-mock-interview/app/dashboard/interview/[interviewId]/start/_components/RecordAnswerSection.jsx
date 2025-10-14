@@ -8,11 +8,11 @@ import { toast } from 'sonner'
 import { ChatSession } from '@google/generative-ai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
-
 
 function RecordAnswerSection({mockInterviewQuestion,activeQuestionIndex}) {
   const [userAnswer, setUserAnswer] = useState('')
+
+  
 
   const {
     error,

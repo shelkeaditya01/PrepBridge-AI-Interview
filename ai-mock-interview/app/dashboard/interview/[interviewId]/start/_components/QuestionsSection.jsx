@@ -12,16 +12,16 @@ function QuestionsSection({ mockInterviewQuestion, activeQuestionIndex }) {
   }
 
   return (
-    mockInterviewQuestion?.length > 0 && (
+    mockInterviewQuestion?.length > 0 ? (
       <div className="mt-13 p-5 border rounded-lg">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {mockInterviewQuestion.map((question, indexx) => (
+          {mockInterviewQuestion.map((question, index) => (
             <h2
-              key={indexx}
+              key={index}
               className={`p-2 bg-secondary rounded-full text-xs md:text-sm text-center cursor-pointer transition-all
-                ${activeQuestionIndex === indexx ? 'bg-blue-600 text-green-800 text-2xl font-bold' : ''}`}
+                ${activeQuestionIndex === index ? 'bg-blue-600 text-green-800 text-2xl font-bold' : ''}`}
             >
-              Question #{indexx + 1}
+              Question #{index + 1}
             </h2>
           ))}
         </div>
@@ -35,6 +35,7 @@ function QuestionsSection({ mockInterviewQuestion, activeQuestionIndex }) {
           onClick={() =>
             textToSpeech(mockInterviewQuestion[activeQuestionIndex]?.question)
           }
+          aria-label="Read question aloud"
         />
 
         <div className="border rounded-lg p-5 border-blue-400 bg-blue-100 mt-8">
@@ -43,10 +44,12 @@ function QuestionsSection({ mockInterviewQuestion, activeQuestionIndex }) {
             <strong>Note:</strong>
           </h2>
           <h2 className="text-blue-500 mt-2">
-            {process.env.NEXT_PUBLIC_QUESTION_NOTE}
+            {process.env.NEXT_PUBLIC_QUESTION_NOTE || "No additional notes."}
           </h2>
         </div>
       </div>
+    ) : (
+      <p>No questions available</p>
     )
   )
 }
