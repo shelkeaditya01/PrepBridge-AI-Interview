@@ -131,7 +131,7 @@ const onSubmit = async (e) => {
         + Add New
       </div>
       
-        <Dialog open={openDialog}>
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
             <DialogContent>
                 <DialogHeader>
                 <DialogTitle className='font-bold text-2xl'>Tell Us More About Job You Are Interviewing ..</DialogTitle>

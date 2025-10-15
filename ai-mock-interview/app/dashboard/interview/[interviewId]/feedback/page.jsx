@@ -11,6 +11,7 @@ import {
 import { ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import NoDataFound from './NoDataFound'
 
 function Feedback({ params }) {
 
@@ -34,7 +35,7 @@ function Feedback({ params }) {
     <div className='p-10'>
 
     {feedbackList?.length==0?
-    <h2 className='font-bold text-xl text-gray-600 mt-10'>No Interview Feedback Record found!</h2>
+    <NoDataFound></NoDataFound>
     :<>
       <h2 className='text-3xl font-bold text-green-500'>Congratulations !!🚀🚀</h2>
       <h2 className='font-bold text-2xl mt-2'>Here is Your Interview Feedback.....</h2>
@@ -57,7 +58,7 @@ function Feedback({ params }) {
         </Collapsible>
       ))}</>
       }
-      <Button onClick={()=>router.replace('/dashboard')} className='cursor-pointer mt-10'>Go Home</Button>
+      <Button onClick={()=>router.replace('/dashboard')} className='cursor-pointer mt-10 ml-190'>Go Home</Button>
     </div>
   )
 }
