@@ -23,7 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.44.6",
     "esbuild": "^0.25.10",
     "gemini-ai": "^2.2.1",
     "lucide-react": "^0.543.0",
