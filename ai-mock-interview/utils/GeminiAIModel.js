@@ -1,5 +1,5 @@
 // utils/GeminiAIModel.js
-import { GoogleGenAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import mime from 'mime';
 import { writeFile } from 'fs';
 
@@ -13,7 +13,7 @@ function saveBinaryFile(fileName, content) {
   });
 }
 
-const ai = new GoogleGenAI({
+const ai = new GoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY, // ✅ Use a non-public key
 });
 
