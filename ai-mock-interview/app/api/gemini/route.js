@@ -1,5 +1,5 @@
 // app/api/gemini/route.js (Next.js 13)
-import { chatSession } from '@/utils/GeminiAIModel'; // server only import allowed here
+import { chatSession } from '@/utils/GeminiAIModel.js'; // server only import allowed here
 
 export async function POST(req) {
   const { prompt } = await req.json();
